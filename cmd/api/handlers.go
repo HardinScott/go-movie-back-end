@@ -1,7 +1,9 @@
 package main
 
 import (
+	"backend/internal/models"
 	"errors"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
 
@@ -140,4 +142,43 @@ func (app *application) MovieCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = app.writeJSON(w, http.StatusOK, movies)
+}
+
+func (app *application) GetMovie(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	movieID, err := strconv.Atoi(id)
+	if err != nil || movieID < 1 {
+		app.errorJSON(w, errors.New("invalid movie id"), http.StatusBadRequest)
+		return
+	}
+
+	movie, err := app.DB.OneMovie(movieID)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	app.writeJSON(w, http.StatusOK, movie)
+}
+
+func (app *application) MovieForEdit(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	movieID, err := strconv.Atoi(id)
+	if err != nil || movieID < 1 {
+		app.errorJSON(w, errors.New("invalid movie id"), http.StatusBadRequest)
+		return
+	}
+	movie, genres, err := app.DB.OneMovieForEdit(movieID)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	payload := struct {
+		Movie  *models.Movie   `json:"movie"`
+		Genres []*models.Genre `json:"genres"`
+	}{
+		movie,
+		genres,
+	}
+
+	_ = app.writeJSON(w, http.StatusOK, payload)
 }
